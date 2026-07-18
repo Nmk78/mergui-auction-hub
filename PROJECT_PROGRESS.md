@@ -4,7 +4,7 @@ Last updated: 2026-07-18
 
 ## Current status
 
-Phases 1 through 4 are complete. Phase 5 is next.
+Phases 1 through 5 are complete. Phase 6 is next.
 
 ## Completed milestones
 
@@ -92,9 +92,27 @@ Phases 1 through 4 are complete. Phase 5 is next.
 - Added seller auction monitoring route.
 - Verified: `npm run lint`, `npm run typecheck`, and `npm run build`.
 
+### Phase 5 — Wallet safety and settlement
+
+- Added buyer wallet queries for balance, reserved funds, available funds, and
+  transaction history.
+- Enforced server-side available-balance checks for every bid.
+- Added atomic reservation transfers when a new bidder takes the lead, including
+  release and hold transaction records.
+- Preserved a buyer's existing reservation when they raise their own leading bid.
+- Settled completed auctions atomically by releasing the winning reservation and
+  debiting the buyer's balance without permitting a negative wallet.
+- Added the buyer wallet dashboard with balance, reserved, and available totals,
+  a transaction ledger, loading/empty/error states, and the virtual-wallet
+  disclaimer.
+- Added available-balance context and insufficient-funds feedback to the bidding
+  flow.
+- Added an internal-only wallet seed operation; there is no buyer top-up or
+  payment interface.
+- Verified: `npm run lint`, `npm run typecheck`, and `npm run build`.
+
 ## Pending phases
 
-- Phase 5 — Wallet reservation, settlement, and transaction history.
 - Phase 6 — Guest/buyer marketplace, search, reports, and purchase history.
 - Phase 7 — Seller analytics, batch history, and sales history.
 - Phase 8 — Empty/error/loading states, accessibility, responsive QA, and full

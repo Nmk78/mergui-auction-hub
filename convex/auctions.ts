@@ -139,12 +139,76 @@ export const placeBid = mutation({
       throw new ConvexError(`The next bid must be at least ${minimum} MMK.`);
     }
 
+    const bidderWallet = await ctx.db
+      .query("wallets")
+      .withIndex("by_user", (query) => query.eq("userId", userId))
+      .unique();
+    if (!bidderWallet) {
+      throw new ConvexError("Buyer wallet not found.");
+    }
+    const ownExistingHold =
+      auction.currentBidderId === userId ? auction.currentPrice : 0;
+    const availableForThisAuction =
+      bidderWallet.balance - bidderWallet.reserved + ownExistingHold;
+    if (availableForThisAuction < amount) {
+      throw new ConvexError(
+        `Available wallet balance is ${availableForThisAuction} MMK.`,
+      );
+    }
+
     const bidId = await ctx.db.insert("bids", {
       auctionId,
       bidderId: userId,
       amount,
       placedAt: now,
     });
+
+    if (auction.currentBidderId) {
+      const previousWallet = await ctx.db
+        .query("wallets")
+        .withIndex("by_user", (query) =>
+          query.eq("userId", auction.currentBidderId!),
+        )
+        .unique();
+      if (!previousWallet || previousWallet.reserved < auction.currentPrice) {
+        throw new ConvexError("Previous bid reservation is inconsistent.");
+      }
+      const previousReserved = previousWallet.reserved - auction.currentPrice;
+      await ctx.db.patch(previousWallet._id, {
+        reserved: previousReserved,
+        updatedAt: now,
+      });
+      await recordWalletTransaction(ctx, {
+        wallet: previousWallet,
+        auctionId,
+        type: "release",
+        amount: auction.currentPrice,
+        reservedAfter: previousReserved,
+        note:
+          auction.currentBidderId === userId
+            ? "Previous bid hold replaced by a higher bid"
+            : "Bid hold released after being outbid",
+      });
+    }
+
+    const bidderReservedBase =
+      auction.currentBidderId === userId
+        ? bidderWallet.reserved - auction.currentPrice
+        : bidderWallet.reserved;
+    const bidderReservedAfter = bidderReservedBase + amount;
+    await ctx.db.patch(bidderWallet._id, {
+      reserved: bidderReservedAfter,
+      updatedAt: now,
+    });
+    await recordWalletTransaction(ctx, {
+      wallet: bidderWallet,
+      auctionId,
+      type: "hold",
+      amount: -amount,
+      reservedAfter: bidderReservedAfter,
+      note: "Funds reserved for leading bid",
+    });
+
     await ctx.db.patch(auctionId, {
       currentPrice: amount,
       currentBidId: bidId,
@@ -299,6 +363,41 @@ async function closeAuctionRecord(
       right.amount - left.amount || left.placedAt - right.placedAt,
   )[0];
   const now = Date.now();
+
+  if (winner) {
+    const wallet = await ctx.db
+      .query("wallets")
+      .withIndex("by_user", (query) => query.eq("userId", winner.bidderId))
+      .unique();
+    if (
+      !wallet ||
+      wallet.balance < winner.amount ||
+      wallet.reserved < winner.amount
+    ) {
+      throw new ConvexError(
+        "Winning wallet invariant failed; settlement was not applied.",
+      );
+    }
+    const balanceAfter = wallet.balance - winner.amount;
+    const reservedAfter = wallet.reserved - winner.amount;
+    await ctx.db.patch(wallet._id, {
+      balance: balanceAfter,
+      reserved: reservedAfter,
+      updatedAt: now,
+    });
+    await ctx.db.insert("transactions", {
+      walletId: wallet._id,
+      userId: winner.bidderId,
+      auctionId: auction._id,
+      type: "purchase",
+      amount: -winner.amount,
+      balanceAfter,
+      reservedAfter,
+      note: "Winning auction settlement",
+      createdAt: now,
+    });
+  }
+
   await ctx.db.patch(auction._id, {
     status: "closed",
     winnerId: winner?.bidderId,
@@ -321,6 +420,30 @@ async function closeAuctionRecord(
     },
   });
   return winner?.bidderId ?? null;
+}
+
+async function recordWalletTransaction(
+  ctx: MutationCtx,
+  input: {
+    wallet: DataModel["wallets"]["document"];
+    auctionId: DataModel["auctions"]["document"]["_id"];
+    type: "hold" | "release";
+    amount: number;
+    reservedAfter: number;
+    note: string;
+  },
+) {
+  await ctx.db.insert("transactions", {
+    walletId: input.wallet._id,
+    userId: input.wallet.userId,
+    auctionId: input.auctionId,
+    type: input.type,
+    amount: input.amount,
+    balanceAfter: input.wallet.balance,
+    reservedAfter: input.reservedAfter,
+    note: input.note,
+    createdAt: Date.now(),
+  });
 }
 
 async function hydrateAuction(

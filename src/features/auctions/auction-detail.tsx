@@ -66,6 +66,15 @@ function LiveAuctionDetail({ auctionId }: { auctionId: string }) {
   const result = useQuery(convexApi.auctions.getPublic, { auctionId });
   const placeBid = useMutation(convexApi.auctions.placeBid);
   const { isAuthenticated, isLoading } = useConvexAuth();
+  const viewer = useQuery(
+    convexApi.profiles.current,
+    isAuthenticated ? {} : "skip",
+  ) as
+    | {
+        profile: { role: "seller" | "buyer" } | null;
+        wallet: { available: number } | null;
+      }
+    | undefined;
 
   if (result === undefined) {
     return <AuctionDetailSkeleton />;
@@ -76,8 +85,11 @@ function LiveAuctionDetail({ auctionId }: { auctionId: string }) {
   return (
     <AuctionDetailView
       auction={result as PublicAuction}
-      authenticated={isAuthenticated}
-      authLoading={isLoading}
+      authenticated={Boolean(
+        isAuthenticated && viewer?.profile?.role === "buyer",
+      )}
+      authLoading={isLoading || (isAuthenticated && viewer === undefined)}
+      walletAvailable={viewer?.wallet?.available}
       onBid={(amount) => placeBid({ auctionId, amount })}
     />
   );
@@ -104,6 +116,7 @@ function DemoAuctionDetail({ auctionId }: { auctionId: string }) {
       auction={auction}
       authenticated={authenticated}
       authLoading={false}
+      walletAvailable={authenticated ? 3_750_000 : undefined}
       onBid={async (amount) => {
         const bid = {
           id: `demo-bid-${Date.now()}`,
@@ -127,11 +140,13 @@ function AuctionDetailView({
   auction,
   authenticated,
   authLoading,
+  walletAvailable,
   onBid,
 }: {
   auction: PublicAuction;
   authenticated: boolean;
   authLoading: boolean;
+  walletAvailable?: number;
   onBid: (amount: number) => Promise<unknown>;
 }) {
   return (
@@ -239,6 +254,7 @@ function AuctionDetailView({
             auction={auction}
             authenticated={authenticated}
             authLoading={authLoading}
+            walletAvailable={walletAvailable}
             onBid={onBid}
           />
         </div>
@@ -251,11 +267,13 @@ function BidCard({
   auction,
   authenticated,
   authLoading,
+  walletAvailable,
   onBid,
 }: {
   auction: PublicAuction;
   authenticated: boolean;
   authLoading: boolean;
+  walletAvailable?: number;
   onBid: (amount: number) => Promise<unknown>;
 }) {
   const minimum =
@@ -311,6 +329,15 @@ function BidCard({
           </Alert>
         )}
 
+        {authenticated && walletAvailable !== undefined && (
+          <div className="rounded-lg border bg-muted/25 p-3">
+            <p className="text-xs text-muted-foreground">Available wallet balance</p>
+            <p className="mt-1 font-mono font-semibold">
+              {mmk.format(walletAvailable)}
+            </p>
+          </div>
+        )}
+
         {auction.status !== "live" ? (
           <Alert>
             <CalendarClock className="size-4" />
@@ -353,7 +380,23 @@ function BidCard({
                 Minimum valid bid: {mmk.format(minimum)}
               </p>
             </div>
-            <Button className="w-full" size="lg" disabled={pending}>
+            {walletAvailable !== undefined && validAmount > walletAvailable && (
+              <Alert variant="destructive">
+                <AlertTriangle className="size-4" />
+                <AlertTitle>Insufficient available balance</AlertTitle>
+                <AlertDescription>
+                  Existing leading bids may already reserve part of your wallet.
+                </AlertDescription>
+              </Alert>
+            )}
+            <Button
+              className="w-full"
+              size="lg"
+              disabled={
+                pending ||
+                (walletAvailable !== undefined && validAmount > walletAvailable)
+              }
+            >
               {pending ? (
                 <Loader2 className="size-4 animate-spin" />
               ) : (
