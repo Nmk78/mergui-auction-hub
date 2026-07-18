@@ -4,7 +4,7 @@ Last updated: 2026-07-18
 
 ## Current status
 
-Phase 1 is complete. Phase 2 is next.
+Phases 1 and 2 are complete. Phase 3 is next.
 
 ## Completed milestones
 
@@ -28,9 +28,27 @@ Phase 1 is complete. Phase 2 is next.
 - Documented environment and local startup requirements.
 - Verified: `npm run lint`, `npm run typecheck`, and `npm run build`.
 
+### Phase 2 — Batch management
+
+- Added seller-owned batch create, read, update, and delete operations.
+- Added shared input rules for names, seafood categories, quantities, weights,
+  dates, ports, and descriptions.
+- Enforced batch ownership in every protected Convex operation.
+- Prevented edits and deletion after a batch enters auction or sold state.
+- Added Convex file-storage upload URL generation and image attachment.
+- Enforced image MIME type, 10 MB per-file limit, 8-image batch limit, and
+  duplicate attachment protection.
+- Added safe image removal and storage cleanup.
+- Invalidated prior AI assessments whenever batch facts or photos change.
+- Added responsive seller batch cards, empty/loading/error states, create and
+  edit forms, image previews, detail view, workflow tracker, and destructive
+  confirmations.
+- Added local showcase batch fixtures that are clearly separated from the live
+  Convex data path.
+- Verified: `npm run lint`, `npm run typecheck`, and `npm run build`.
+
 ## Pending phases
 
-- Phase 2 — Batch CRUD, validation, image upload, and Convex file storage.
 - Phase 3 — AI visual assessment, price prediction, report explanation, and
   grounded seafood assistant.
 - Phase 4 — Timed auction publishing, bidding, deterministic close, and winner.
