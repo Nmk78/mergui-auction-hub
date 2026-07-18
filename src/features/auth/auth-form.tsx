@@ -2,7 +2,14 @@
 
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useMutation } from "convex/react";
-import { ArrowRight, Database, Loader2, LockKeyhole } from "lucide-react";
+import {
+  ArrowRight,
+  Database,
+  Gavel,
+  Loader2,
+  LockKeyhole,
+  ShoppingBag,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
@@ -11,34 +18,39 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useBackend } from "@/components/providers/backend-provider";
 import { convexApi } from "@/lib/convex-api";
 import type { UserRole } from "@/types/domain";
 
-export function AuthForm({ mode }: { mode: "login" | "register" }) {
+export function AuthForm({
+  mode,
+  initialRole = "buyer",
+}: {
+  mode: "login" | "register";
+  initialRole?: UserRole;
+}) {
   const { configured } = useBackend();
 
   return configured ? (
-    <LiveAuthForm mode={mode} />
+    <LiveAuthForm mode={mode} initialRole={initialRole} />
   ) : (
-    <DemoAuthForm mode={mode} />
+    <DemoAuthForm mode={mode} initialRole={initialRole} />
   );
 }
 
-function LiveAuthForm({ mode }: { mode: "login" | "register" }) {
+function LiveAuthForm({
+  mode,
+  initialRole,
+}: {
+  mode: "login" | "register";
+  initialRole: UserRole;
+}) {
   const router = useRouter();
   const { signIn } = useAuthActions();
   const initializeProfile = useMutation(convexApi.profiles.initialize);
   const [pending, setPending] = useState(false);
   const [oauthPending, setOauthPending] = useState(false);
-  const [role, setRole] = useState<UserRole>(mode === "register" ? "buyer" : "seller");
+  const [role, setRole] = useState<UserRole>(initialRole);
   const [error, setError] = useState<string | null>(null);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
@@ -54,9 +66,16 @@ function LiveAuthForm({ mode }: { mode: "login" | "register" }) {
       if (mode === "register") {
         await initializeProfile({
           displayName: String(data.get("name") ?? "").trim(),
+          role,
+          businessName: String(data.get("businessName") ?? "").trim() || undefined,
+          primaryPort: String(data.get("primaryPort") ?? "").trim() || undefined,
         });
       }
-      toast.success(mode === "register" ? "Buyer account created" : "Welcome back");
+      toast.success(
+        mode === "register"
+          ? `${role === "seller" ? "Seller" : "Buyer"} account created`
+          : "Welcome back",
+      );
       router.push(role === "seller" ? "/seller" : "/buyer");
       router.refresh();
     } catch (cause) {
@@ -75,7 +94,7 @@ function LiveAuthForm({ mode }: { mode: "login" | "register" }) {
     setError(null);
     try {
       await signIn("google", {
-        redirectTo: `/auth/complete?role=${mode === "register" ? "buyer" : role}`,
+        redirectTo: `/auth/complete?role=${role}`,
       });
     } catch (cause) {
       setError(
@@ -89,6 +108,7 @@ function LiveAuthForm({ mode }: { mode: "login" | "register" }) {
 
   return (
     <div className="space-y-5">
+      <RoleToggle mode={mode} role={role} onRoleChange={setRole} />
       <Button
         type="button"
         variant="outline"
@@ -102,7 +122,7 @@ function LiveAuthForm({ mode }: { mode: "login" | "register" }) {
         ) : (
           <LockKeyhole className="size-4" />
         )}
-        Continue with Google
+        Continue with Google as {role === "seller" ? "seller" : "buyer"}
       </Button>
       <div className="flex items-center gap-3">
         <Separator className="flex-1" />
@@ -122,6 +142,29 @@ function LiveAuthForm({ mode }: { mode: "login" | "register" }) {
               minLength={2}
             />
           </div>
+        )}
+        {mode === "register" && role === "seller" && (
+          <>
+            <div className="space-y-2">
+              <Label htmlFor="business-name">Business name</Label>
+              <Input
+                id="business-name"
+                name="businessName"
+                autoComplete="organization"
+                placeholder="Your seafood business"
+                required
+                minLength={2}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="primary-port">Primary landing port <span className="text-muted-foreground">(optional)</span></Label>
+              <Input
+                id="primary-port"
+                name="primaryPort"
+                placeholder="e.g. Myeik Main Jetty"
+              />
+            </div>
+          </>
         )}
         <div className="space-y-2">
           <Label htmlFor="email">Email address</Label>
@@ -146,23 +189,6 @@ function LiveAuthForm({ mode }: { mode: "login" | "register" }) {
             required
           />
         </div>
-        {mode === "login" && (
-          <div className="space-y-2">
-            <Label htmlFor="workspace">Open workspace</Label>
-            <Select value={role} onValueChange={(value) => setRole(value as UserRole)}>
-              <SelectTrigger id="workspace">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="seller">Seller workspace</SelectItem>
-                <SelectItem value="buyer">Buyer workspace</SelectItem>
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">
-              Access is verified against your assigned account role.
-            </p>
-          </div>
-        )}
         {error && (
           <Alert variant="destructive">
             <LockKeyhole className="size-4" />
@@ -176,16 +202,24 @@ function LiveAuthForm({ mode }: { mode: "login" | "register" }) {
           ) : (
             <ArrowRight className="size-4" />
           )}
-          {mode === "register" ? "Create buyer account" : "Sign in securely"}
+          {mode === "register"
+            ? `Create ${role === "seller" ? "seller" : "buyer"} account`
+            : `Sign in as ${role === "seller" ? "seller" : "buyer"}`}
         </Button>
       </form>
     </div>
   );
 }
 
-function DemoAuthForm({ mode }: { mode: "login" | "register" }) {
+function DemoAuthForm({
+  mode,
+  initialRole,
+}: {
+  mode: "login" | "register";
+  initialRole: UserRole;
+}) {
   const router = useRouter();
-  const [role, setRole] = useState<UserRole>(mode === "register" ? "buyer" : "seller");
+  const [role, setRole] = useState<UserRole>(initialRole);
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -209,6 +243,7 @@ function DemoAuthForm({ mode }: { mode: "login" | "register" }) {
           <Input id="demo-name" placeholder="Your full name" required />
         </div>
       )}
+      <RoleToggle mode={mode} role={role} onRoleChange={setRole} />
       <div className="space-y-2">
         <Label htmlFor="demo-email">Email address</Label>
         <Input
@@ -228,24 +263,62 @@ function DemoAuthForm({ mode }: { mode: "login" | "register" }) {
           required
         />
       </div>
-      {mode === "login" && (
+      {mode === "register" && role === "seller" && (
         <div className="space-y-2">
-          <Label htmlFor="demo-workspace">Open workspace</Label>
-          <Select value={role} onValueChange={(value) => setRole(value as UserRole)}>
-            <SelectTrigger id="demo-workspace">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="seller">Seller workspace</SelectItem>
-              <SelectItem value="buyer">Buyer workspace</SelectItem>
-            </SelectContent>
-          </Select>
+          <Label htmlFor="demo-business-name">Business name</Label>
+          <Input id="demo-business-name" placeholder="Your seafood business" required />
         </div>
       )}
       <Button className="w-full" size="lg">
         <ArrowRight className="size-4" />
-        {mode === "register" ? "Preview buyer account" : "Open showcase"}
+        {mode === "register"
+          ? `Preview ${role} account`
+          : `Open ${role} workspace`}
       </Button>
     </form>
+  );
+}
+
+function RoleToggle({
+  mode,
+  role,
+  onRoleChange,
+}: {
+  mode: "login" | "register";
+  role: UserRole;
+  onRoleChange: (role: UserRole) => void;
+}) {
+  const action = mode === "register" ? "I want to" : "Sign in to my";
+  return (
+    <fieldset className="space-y-2">
+      <legend className="text-sm font-medium">{action} account</legend>
+      <div className="grid grid-cols-2 gap-2 rounded-lg bg-muted p-1">
+        <Button
+          type="button"
+          variant={role === "buyer" ? "default" : "ghost"}
+          className="h-auto justify-start px-3 py-2.5"
+          aria-pressed={role === "buyer"}
+          onClick={() => onRoleChange("buyer")}
+        >
+          <ShoppingBag className="size-4" />
+          <span className="text-left"><span className="block">Buy seafood</span><span className="block text-xs font-normal opacity-75">Place bids</span></span>
+        </Button>
+        <Button
+          type="button"
+          variant={role === "seller" ? "default" : "ghost"}
+          className="h-auto justify-start px-3 py-2.5"
+          aria-pressed={role === "seller"}
+          onClick={() => onRoleChange("seller")}
+        >
+          <Gavel className="size-4" />
+          <span className="text-left"><span className="block">Sell seafood</span><span className="block text-xs font-normal opacity-75">Create auctions</span></span>
+        </Button>
+      </div>
+      <p className="text-xs leading-5 text-muted-foreground">
+        {role === "buyer"
+          ? "Buyer accounts can bid on live auctions and track purchases."
+          : "Seller accounts can add batches, request assessments, and publish auctions."}
+      </p>
+    </fieldset>
   );
 }

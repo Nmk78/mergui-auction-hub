@@ -4,7 +4,7 @@ export const convexApi = {
   profiles: {
     current: makeFunctionReference<"query">("profiles:current"),
     initialize: makeFunctionReference<"mutation">("profiles:initialize"),
-    ensureBuyer: makeFunctionReference<"mutation">("profiles:ensureBuyer"),
+    ensureProfile: makeFunctionReference<"mutation">("profiles:ensureProfile"),
   },
   batches: {
     create: makeFunctionReference<"mutation">("batches:create"),

@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AuthForm } from "@/features/auth/auth-form";
 
 export const metadata: Metadata = {
-  title: "Buyer registration",
+  title: "Create account",
 };
 
 export default function RegisterPage() {
@@ -18,11 +18,11 @@ export default function RegisterPage() {
         <BrandMark className="mb-8" />
         <Card className="shadow-sm">
           <CardHeader>
-            <p className="text-sm font-medium text-primary">Buyer access</p>
-            <CardTitle className="text-2xl">Create your buyer account</CardTitle>
+            <p className="text-sm font-medium text-primary">Trading access</p>
+            <CardTitle className="text-2xl">Create your account</CardTitle>
             <p className="text-sm leading-6 text-muted-foreground">
-              Review AI visual reports, participate in timed auctions, and keep a
-              complete purchase history.
+              Select a buyer account to place bids, or a seller account to add
+              seafood batches and publish auctions.
             </p>
           </CardHeader>
           <CardContent>

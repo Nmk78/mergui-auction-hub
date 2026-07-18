@@ -25,6 +25,7 @@ import type * as lib_bidding from "../lib/bidding.js";
 import type * as lib_openrouter from "../lib/openrouter.js";
 import type * as lib_server from "../lib/server.js";
 import type * as profiles from "../profiles.js";
+import type * as seed from "../seed.js";
 import type * as wallets from "../wallets.js";
 
 import type {
@@ -51,6 +52,7 @@ declare const fullApi: ApiFromModules<{
   "lib/openrouter": typeof lib_openrouter;
   "lib/server": typeof lib_server;
   profiles: typeof profiles;
+  seed: typeof seed;
   wallets: typeof wallets;
 }>;
 

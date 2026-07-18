@@ -443,7 +443,7 @@ function BidCard({
               Guests can review the full auction and AI summary but cannot bid.
             </p>
             <Button asChild className="mt-4 w-full">
-              <Link href="/register">Register to bid</Link>
+              <Link href="/register">Create buyer account</Link>
             </Button>
             <Button asChild variant="ghost" className="mt-1 w-full">
               <Link href="/login">Sign in</Link>

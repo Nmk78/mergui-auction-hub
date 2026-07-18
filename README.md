@@ -36,6 +36,26 @@ registration. Seller profiles are business-provisioned through the internal
 registration or admin dashboard in this MVP. Wallet balances are seeded through
 the internal `wallets:setSeededBalance` operation.
 
+## Development test users
+
+With `DEBUG_TOOLS_ENABLED=true` on the development deployment, seed two sellers
+and three funded buyers with:
+
+```bash
+npm run seed:users
+```
+
+All seeded accounts use the password `DemoPass123!`:
+
+- Sellers: `seller1@mergui.test`, `seller2@mergui.test`
+- Buyers: `buyer1@mergui.test`, `buyer2@mergui.test`, `buyer3@mergui.test`
+
+To repair a test account registered with the wrong role:
+
+```bash
+npx convex run seed:assignExistingRole '{"email":"seller3@gmail.com","role":"seller"}'
+```
+
 ## Environment
 
 Local app environment:

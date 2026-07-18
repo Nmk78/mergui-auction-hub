@@ -47,13 +47,13 @@ export default function LoginPage() {
               <p className="text-sm font-medium text-primary">Secure access</p>
               <CardTitle className="text-2xl">Sign in to your workspace</CardTitle>
               <p className="text-sm leading-6 text-muted-foreground">
-                Continue as an approved seller or registered buyer.
+                Choose whether you are here to buy seafood or sell it, then sign in to the matching workspace.
               </p>
             </CardHeader>
             <CardContent>
               <AuthForm mode="login" />
               <p className="mt-6 text-center text-sm text-muted-foreground">
-                New buyer?{" "}
+                New here?{" "}
                 <Link href="/register" className="font-medium text-primary">
                   Create an account
                 </Link>

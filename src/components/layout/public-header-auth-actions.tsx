@@ -95,7 +95,7 @@ function GuestActions() {
         <Link href="/login">Sign in</Link>
       </Button>
       <Button asChild className="hidden sm:inline-flex">
-        <Link href="/register">Buyer registration</Link>
+        <Link href="/register">Create account</Link>
       </Button>
     </>
   );

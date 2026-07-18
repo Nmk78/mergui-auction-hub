@@ -2,22 +2,23 @@
 
 import { useConvexAuth, useMutation } from "convex/react";
 import { Loader2, LockKeyhole } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { convexApi } from "@/lib/convex-api";
 import type { UserRole } from "@/types/domain";
 
-type EnsureBuyerResult = {
+type EnsureProfileResult = {
   profileId: string;
   role: UserRole;
 };
 
 export function AuthComplete() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { isAuthenticated, isLoading } = useConvexAuth();
-  const ensureBuyer = useMutation(convexApi.profiles.ensureBuyer);
+  const ensureProfile = useMutation(convexApi.profiles.ensureProfile);
   const started = useRef(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -34,7 +35,11 @@ export function AuthComplete() {
 
     void (async () => {
       try {
-        const result = (await ensureBuyer({})) as EnsureBuyerResult;
+        const requestedRole =
+          searchParams.get("role") === "seller" ? "seller" : "buyer";
+        const result = (await ensureProfile({
+          role: requestedRole,
+        })) as EnsureProfileResult;
         const destination = result.role === "seller" ? "/seller" : "/buyer";
         router.replace(destination);
         router.refresh();
@@ -46,7 +51,7 @@ export function AuthComplete() {
         );
       }
     })();
-  }, [ensureBuyer, isAuthenticated, isLoading, router]);
+  }, [ensureProfile, isAuthenticated, isLoading, router, searchParams]);
 
   return (
     <div className="space-y-5 text-center">

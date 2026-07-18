@@ -37,6 +37,9 @@ export const current = query({
 export const initialize = mutation({
   args: {
     displayName: v.string(),
+    role: v.union(v.literal("seller"), v.literal("buyer")),
+    businessName: v.optional(v.string()),
+    primaryPort: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const userId = await requireUserId(ctx);
@@ -53,34 +56,46 @@ export const initialize = mutation({
       return existing._id;
     }
 
+    const businessName = args.businessName?.trim();
+    const primaryPort = args.primaryPort?.trim();
+    if (args.role === "seller" && (!businessName || businessName.length < 2)) {
+      throw new ConvexError("Business name must contain 2 to 120 characters.");
+    }
+    if (businessName && businessName.length > 120) {
+      throw new ConvexError("Business name must contain 2 to 120 characters.");
+    }
+    if (primaryPort && primaryPort.length > 120) {
+      throw new ConvexError("Primary port must contain at most 120 characters.");
+    }
+
     const now = Date.now();
     const profileId = await ctx.db.insert("profiles", {
       userId,
-      role: "buyer",
+      role: args.role,
       displayName: name,
+      businessName: businessName || undefined,
+      primaryPort: primaryPort || undefined,
       createdAt: now,
       updatedAt: now,
     });
-    const walletId = await ctx.db.insert("wallets", {
-      userId,
-      balance: 0,
-      reserved: 0,
-      updatedAt: now,
-    });
+    const walletId =
+      args.role === "buyer" ? await ensureBuyerWallet(ctx, userId) : undefined;
     await writeActivity(ctx, {
       userId,
       action: "profile.created",
       entityType: "profile",
       entityId: profileId,
-      metadata: { role: "buyer", walletId },
+      metadata: { role: args.role, walletId },
     });
     return profileId;
   },
 });
 
-export const ensureBuyer = mutation({
-  args: {},
-  handler: async (ctx) => {
+export const ensureProfile = mutation({
+  args: {
+    role: v.union(v.literal("seller"), v.literal("buyer")),
+  },
+  handler: async (ctx, args) => {
     const userId = await requireUserId(ctx);
     const [user, existing] = await Promise.all([
       ctx.db.get(userId),
@@ -102,20 +117,21 @@ export const ensureBuyer = mutation({
     const now = Date.now();
     const profileId = await ctx.db.insert("profiles", {
       userId,
-      role: "buyer",
+      role: args.role,
       displayName,
       createdAt: now,
       updatedAt: now,
     });
-    const walletId = await ensureBuyerWallet(ctx, userId);
+    const walletId =
+      args.role === "buyer" ? await ensureBuyerWallet(ctx, userId) : undefined;
     await writeActivity(ctx, {
       userId,
       action: "profile.created",
       entityType: "profile",
       entityId: profileId,
-      metadata: { role: "buyer", walletId, source: "oauth" },
+      metadata: { role: args.role, walletId, source: "oauth" },
     });
-    return { profileId, role: "buyer" as const };
+    return { profileId, role: args.role };
   },
 });
 
