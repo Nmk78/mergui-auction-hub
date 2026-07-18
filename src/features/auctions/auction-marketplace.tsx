@@ -21,10 +21,16 @@ import { convexApi } from "@/lib/convex-api";
 import { demoAuctions, demoScheduledAuctions } from "@/lib/demo-data";
 import type { PublicAuction, SeafoodType } from "@/types/domain";
 
-export function AuctionMarketplace() {
+export function AuctionMarketplace({
+  initialSearch = "",
+  initialStatus = "live",
+}: {
+  initialSearch?: string;
+  initialStatus?: "live" | "scheduled";
+}) {
   const { configured } = useBackend();
-  const [status, setStatus] = useState<"live" | "scheduled">("live");
-  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState<"live" | "scheduled">(initialStatus);
+  const [search, setSearch] = useState(initialSearch);
   const [seafoodType, setSeafoodType] = useState<SeafoodType | "all">("all");
 
   return (

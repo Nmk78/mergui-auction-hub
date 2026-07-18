@@ -6,11 +6,23 @@ export const metadata: Metadata = {
   title: "Seafood auctions",
 };
 
-export default function AuctionsPage() {
+export default async function AuctionsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ search?: string; status?: string }>;
+}) {
+  const params = await searchParams;
+  const initialSearch =
+    typeof params.search === "string" ? params.search.slice(0, 100) : "";
+  const initialStatus =
+    params.status === "scheduled" ? "scheduled" : "live";
   return (
     <>
       <PublicHeader />
-      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-9 sm:px-6 lg:px-8">
+      <main
+        id="main-content"
+        className="mx-auto w-full max-w-7xl flex-1 px-4 py-9 sm:px-6 lg:px-8"
+      >
         <div className="mb-8 max-w-2xl">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">
             Myeik seafood marketplace
@@ -23,7 +35,10 @@ export default function AuctionsPage() {
             before placing a timed bid.
           </p>
         </div>
-        <AuctionMarketplace />
+        <AuctionMarketplace
+          initialSearch={initialSearch}
+          initialStatus={initialStatus}
+        />
       </main>
     </>
   );

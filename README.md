@@ -30,6 +30,12 @@ Without `NEXT_PUBLIC_CONVEX_URL`, the interface starts in local showcase mode so
 that the product shell and seeded workflows remain reviewable. Showcase mode is
 clearly labelled and never impersonates a live backend.
 
+Buyer profiles and zero-balance virtual wallets are created during public buyer
+registration. Seller profiles are business-provisioned through the internal
+`profiles:provisionSeller` operation; there is intentionally no public seller
+registration or admin dashboard in this MVP. Wallet balances are seeded through
+the internal `wallets:setSeededBalance` operation.
+
 ## Environment
 
 Browser environment:
@@ -52,6 +58,7 @@ Never expose model or authentication secrets with a `NEXT_PUBLIC_` prefix.
 ```bash
 npm run lint
 npm run typecheck
+npm test
 npm run build
 ```
 

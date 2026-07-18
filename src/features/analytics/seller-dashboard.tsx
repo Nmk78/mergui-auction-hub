@@ -84,7 +84,7 @@ export const demoSellerAnalytics: SellerAnalytics = {
     },
     {
       id: "sale-2",
-      batchId: "demo-sale-2",
+      batchId: "demo-batch-1",
       batchName: "Myeik White Pomfret — Lot 16",
       seafoodType: "Fish",
       weightKg: 276,

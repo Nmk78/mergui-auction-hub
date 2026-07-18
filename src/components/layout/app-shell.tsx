@@ -1,9 +1,11 @@
 "use client";
 
+import { useQuery } from "convex/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, Search } from "lucide-react";
+import { Menu, Plus, ShoppingBag } from "lucide-react";
 import { BrandMark } from "@/components/brand/brand-mark";
+import { useBackend } from "@/components/providers/backend-provider";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,8 +16,9 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
+import { convexApi } from "@/lib/convex-api";
 import { cn } from "@/lib/utils";
 import { buyerNavigation, sellerNavigation } from "@/lib/constants";
 
@@ -67,7 +70,7 @@ export function AppShell({
           <p className="text-xs font-medium uppercase tracking-[0.14em] text-sidebar-foreground/45">
             Workspace
           </p>
-          <p className="mt-1 text-sm font-medium">Myeik Trading Co.</p>
+          <p className="mt-1 text-sm font-medium">MERGUI Auction Hub</p>
           <p className="text-xs text-sidebar-foreground/55">{roleLabel}</p>
         </div>
       </aside>
@@ -98,29 +101,79 @@ export function AppShell({
             </SheetContent>
           </Sheet>
 
-          <div className="relative hidden max-w-md flex-1 sm:block">
-            <Search
-              className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-              aria-hidden="true"
-            />
-            <Input
-              className="bg-background pl-9"
-              placeholder="Search batches and auctions"
-              aria-label="Search workspace"
-            />
-          </div>
+          <Button asChild variant="outline" className="hidden sm:inline-flex">
+            <Link
+              href={variant === "seller" ? "/seller/batches/new" : "/auctions"}
+            >
+              {variant === "seller" ? (
+                <Plus className="size-4" />
+              ) : (
+                <ShoppingBag className="size-4" />
+              )}
+              {variant === "seller" ? "Create batch" : "Browse auctions"}
+            </Link>
+          </Button>
           <div className="ml-auto flex items-center gap-3">
-            <div className="hidden text-right sm:block">
-              <p className="text-sm font-medium">Demo User</p>
-              <p className="text-xs text-muted-foreground">{roleLabel}</p>
-            </div>
-            <Avatar className="size-9">
-              <AvatarFallback>DU</AvatarFallback>
-            </Avatar>
+            <WorkspaceIdentity roleLabel={roleLabel} />
           </div>
         </header>
-        <main className="px-4 py-6 sm:px-6 lg:px-8 lg:py-8">{children}</main>
+        <main
+          id="main-content"
+          className="px-4 py-6 sm:px-6 lg:px-8 lg:py-8"
+        >
+          {children}
+        </main>
       </div>
     </div>
+  );
+}
+
+function WorkspaceIdentity({ roleLabel }: { roleLabel: string }) {
+  const { configured } = useBackend();
+  return configured ? (
+    <LiveWorkspaceIdentity roleLabel={roleLabel} />
+  ) : (
+    <Identity name="Showcase User" roleLabel={roleLabel} />
+  );
+}
+
+function LiveWorkspaceIdentity({ roleLabel }: { roleLabel: string }) {
+  const result = useQuery(convexApi.profiles.current, {}) as
+    | {
+        user: { name?: string; email?: string } | null;
+        profile: {
+          displayName: string;
+          businessName?: string;
+        } | null;
+      }
+    | undefined;
+  if (result === undefined) {
+    return <Skeleton className="size-9 rounded-full" />;
+  }
+  const name =
+    result.profile?.businessName ??
+    result.profile?.displayName ??
+    result.user?.name ??
+    "Account";
+  return <Identity name={name} roleLabel={roleLabel} />;
+}
+
+function Identity({ name, roleLabel }: { name: string; roleLabel: string }) {
+  const initials = name
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
+  return (
+    <>
+      <div className="hidden max-w-48 text-right sm:block">
+        <p className="truncate text-sm font-medium">{name}</p>
+        <p className="text-xs text-muted-foreground">{roleLabel}</p>
+      </div>
+      <Avatar className="size-9">
+        <AvatarFallback>{initials || "MA"}</AvatarFallback>
+      </Avatar>
+    </>
   );
 }

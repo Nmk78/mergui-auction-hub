@@ -29,7 +29,11 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { convexApi } from "@/lib/convex-api";
 import { mmk, number } from "@/lib/constants";
-import { demoAuctions } from "@/lib/demo-data";
+import {
+  demoAuctions,
+  demoPurchasedAuctions,
+  demoScheduledAuctions,
+} from "@/lib/demo-data";
 import type { PublicAuction } from "@/types/domain";
 
 const demoBids = [
@@ -64,7 +68,60 @@ export function AuctionDetail({ auctionId }: { auctionId: string }) {
 
 function LiveAuctionDetail({ auctionId }: { auctionId: string }) {
   const result = useQuery(convexApi.auctions.getPublic, { auctionId });
-  const placeBid = useMutation(convexApi.auctions.placeBid);
+  const placeBid = useMutation(
+    convexApi.auctions.placeBid,
+  ).withOptimisticUpdate((store, args) => {
+    const current = store.getQuery(convexApi.auctions.getPublic, {
+      auctionId: args.auctionId,
+    }) as PublicAuction | null | undefined;
+    if (!current || current.status !== "live") {
+      return;
+    }
+    const previousOwnHold = current.isLeading ? current.currentPrice : 0;
+    const reservationIncrease = args.amount - previousOwnHold;
+    const pendingBid = {
+      id: `optimistic-${current.id}-${args.amount}-${current.bidCount + 1}`,
+      amount: args.amount,
+      placedAt: Math.max(
+        current.startsAt,
+        (current.bids?.[0]?.placedAt ?? current.startsAt) + 1,
+      ),
+      bidderName: "Your bid · pending",
+    };
+    store.setQuery(
+      convexApi.auctions.getPublic,
+      { auctionId: args.auctionId },
+      {
+        ...current,
+        currentPrice: args.amount,
+        bidCount: current.bidCount + 1,
+        isLeading: true,
+        bids: [pendingBid, ...(current.bids ?? [])],
+      },
+    );
+
+    const profile = store.getQuery(convexApi.profiles.current, {}) as
+      | {
+          user: unknown;
+          profile: unknown;
+          wallet: {
+            balance: number;
+            reserved: number;
+            available: number;
+          } | null;
+        }
+      | undefined;
+    if (profile?.wallet) {
+      store.setQuery(convexApi.profiles.current, {}, {
+        ...profile,
+        wallet: {
+          ...profile.wallet,
+          reserved: profile.wallet.reserved + reservationIncrease,
+          available: profile.wallet.available - reservationIncrease,
+        },
+      });
+    }
+  });
   const { isAuthenticated, isLoading } = useConvexAuth();
   const viewer = useQuery(
     convexApi.profiles.current,
@@ -96,12 +153,19 @@ function LiveAuctionDetail({ auctionId }: { auctionId: string }) {
 }
 
 function DemoAuctionDetail({ auctionId }: { auctionId: string }) {
-  const initial =
-    demoAuctions.find((auction) => auction.id === auctionId) ?? demoAuctions[0];
-  const [auction, setAuction] = useState<PublicAuction>({
-    ...initial,
-    bids: demoBids,
-  });
+  const initial = [
+    ...demoAuctions,
+    ...demoScheduledAuctions,
+    ...demoPurchasedAuctions,
+  ].find((auction) => auction.id === auctionId);
+  const [auction, setAuction] = useState<PublicAuction | null>(() =>
+    initial
+      ? {
+          ...initial,
+          bids: initial.status === "live" ? demoBids : [],
+        }
+      : null,
+  );
   const authenticated = useSyncExternalStore(
     (notify) => {
       window.addEventListener("storage", notify);
@@ -110,6 +174,9 @@ function DemoAuctionDetail({ auctionId }: { auctionId: string }) {
     () => sessionStorage.getItem("mergui-demo-role") === "buyer",
     () => false,
   );
+  if (!auction) {
+    return <AuctionMissing />;
+  }
 
   return (
     <AuctionDetailView
@@ -124,13 +191,17 @@ function DemoAuctionDetail({ auctionId }: { auctionId: string }) {
           placedAt: Date.now(),
           bidderName: "Demo Buyer",
         };
-        setAuction((current) => ({
-          ...current,
-          currentPrice: amount,
-          bidCount: current.bidCount + 1,
-          bids: [bid, ...(current.bids ?? [])],
-          isLeading: true,
-        }));
+        setAuction((current) =>
+          current
+            ? {
+                ...current,
+                currentPrice: amount,
+                bidCount: current.bidCount + 1,
+                bids: [bid, ...(current.bids ?? [])],
+                isLeading: true,
+              }
+            : current,
+        );
       }}
     />
   );
@@ -283,6 +354,10 @@ function BidCard({
   const [amount, setAmount] = useState(minimum);
   const [pending, setPending] = useState(false);
   const validAmount = Math.max(amount, minimum);
+  const availableForAuction =
+    walletAvailable === undefined
+      ? undefined
+      : walletAvailable + (auction.isLeading ? auction.currentPrice : 0);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -331,9 +406,11 @@ function BidCard({
 
         {authenticated && walletAvailable !== undefined && (
           <div className="rounded-lg border bg-muted/25 p-3">
-            <p className="text-xs text-muted-foreground">Available wallet balance</p>
+            <p className="text-xs text-muted-foreground">
+              Available for this auction
+            </p>
             <p className="mt-1 font-mono font-semibold">
-              {mmk.format(walletAvailable)}
+              {mmk.format(availableForAuction ?? walletAvailable)}
             </p>
           </div>
         )}
@@ -341,11 +418,20 @@ function BidCard({
         {auction.status !== "live" ? (
           <Alert>
             <CalendarClock className="size-4" />
-            <AlertTitle>Bidding is closed</AlertTitle>
+            <AlertTitle>
+              {auction.status === "scheduled"
+                ? "Bidding has not started"
+                : "Bidding is closed"}
+            </AlertTitle>
             <AlertDescription>
-              {auction.winnerName
-                ? `${auction.winnerName} won at ${mmk.format(auction.currentPrice)}.`
-                : "This auction ended without a winning bid."}
+              {auction.status === "scheduled"
+                ? `This auction opens ${new Date(auction.startsAt).toLocaleString(
+                    "en-GB",
+                    { dateStyle: "medium", timeStyle: "short" },
+                  )}.`
+                : auction.winnerName
+                  ? `${auction.winnerName} won at ${mmk.format(auction.currentPrice)}.`
+                  : "This auction ended without a winning bid."}
             </AlertDescription>
           </Alert>
         ) : authLoading ? (
@@ -380,7 +466,8 @@ function BidCard({
                 Minimum valid bid: {mmk.format(minimum)}
               </p>
             </div>
-            {walletAvailable !== undefined && validAmount > walletAvailable && (
+            {availableForAuction !== undefined &&
+              validAmount > availableForAuction && (
               <Alert variant="destructive">
                 <AlertTriangle className="size-4" />
                 <AlertTitle>Insufficient available balance</AlertTitle>
@@ -394,7 +481,8 @@ function BidCard({
               size="lg"
               disabled={
                 pending ||
-                (walletAvailable !== undefined && validAmount > walletAvailable)
+                (availableForAuction !== undefined &&
+                  validAmount > availableForAuction)
               }
             >
               {pending ? (

@@ -204,14 +204,20 @@ function BatchFormView({
           </p>
         </CardHeader>
         <CardContent className="grid gap-5 md:grid-cols-2">
-          <Field label="Batch name" error={form.formState.errors.name?.message}>
+          <Field
+            label="Batch name"
+            htmlFor="batch-name"
+            error={form.formState.errors.name?.message}
+          >
             <Input
+              id="batch-name"
               placeholder="e.g. Tanintharyi Tiger Prawns — Lot 24"
               {...form.register("name")}
             />
           </Field>
           <Field
             label="Seafood type"
+            htmlFor="seafood-type"
             error={form.formState.errors.seafoodType?.message}
           >
             <Select
@@ -224,7 +230,7 @@ function BatchFormView({
                 )
               }
             >
-              <SelectTrigger>
+              <SelectTrigger id="seafood-type">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -236,8 +242,13 @@ function BatchFormView({
               </SelectContent>
             </Select>
           </Field>
-          <Field label="Quantity" error={form.formState.errors.quantity?.message}>
+          <Field
+            label="Quantity"
+            htmlFor="batch-quantity"
+            error={form.formState.errors.quantity?.message}
+          >
             <Input
+              id="batch-quantity"
               type="number"
               min={1}
               step={1}
@@ -246,33 +257,54 @@ function BatchFormView({
           </Field>
           <Field
             label="Total weight (kg)"
+            htmlFor="batch-weight"
             error={form.formState.errors.weightKg?.message}
           >
             <Input
+              id="batch-weight"
               type="number"
               min={0.1}
               step={0.1}
               {...form.register("weightKg", { valueAsNumber: true })}
             />
           </Field>
-          <Field label="Catch date" error={form.formState.errors.catchDate?.message}>
-            <Input type="date" {...form.register("catchDate")} />
+          <Field
+            label="Catch date"
+            htmlFor="catch-date"
+            error={form.formState.errors.catchDate?.message}
+          >
+            <Input id="catch-date" type="date" {...form.register("catchDate")} />
           </Field>
           <Field
             label="Arrival date"
+            htmlFor="arrival-date"
             error={form.formState.errors.arrivalDate?.message}
           >
-            <Input type="date" {...form.register("arrivalDate")} />
+            <Input
+              id="arrival-date"
+              type="date"
+              {...form.register("arrivalDate")}
+            />
           </Field>
-          <Field label="Port" error={form.formState.errors.port?.message}>
-            <Input placeholder="e.g. Myeik Main Jetty" {...form.register("port")} />
+          <Field
+            label="Port"
+            htmlFor="landing-port"
+            error={form.formState.errors.port?.message}
+          >
+            <Input
+              id="landing-port"
+              placeholder="e.g. Myeik Main Jetty"
+              {...form.register("port")}
+            />
           </Field>
           <div className="md:col-span-2">
             <Field
               label="Description"
+              htmlFor="batch-description"
               error={form.formState.errors.description?.message}
             >
               <Textarea
+                id="batch-description"
                 rows={5}
                 placeholder="Describe handling, sorting, storage, and any details buyers should know."
                 {...form.register("description")}
@@ -369,16 +401,18 @@ function BatchFormView({
 
 function Field({
   label,
+  htmlFor,
   error,
   children,
 }: {
   label: string;
+  htmlFor: string;
   error?: string;
   children: React.ReactNode;
 }) {
   return (
     <div className="space-y-2">
-      <Label>{label}</Label>
+      <Label htmlFor={htmlFor}>{label}</Label>
       {children}
       {error && <p className="text-xs font-medium text-destructive">{error}</p>}
     </div>

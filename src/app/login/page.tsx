@@ -11,7 +11,10 @@ export const metadata: Metadata = {
 
 export default function LoginPage() {
   return (
-    <main className="grid min-h-screen lg:grid-cols-[minmax(0,1fr)_minmax(440px,0.7fr)]">
+    <main
+      id="main-content"
+      className="grid min-h-screen lg:grid-cols-[minmax(0,1fr)_minmax(440px,0.7fr)]"
+    >
       <section className="hidden bg-sidebar px-12 py-10 text-sidebar-foreground lg:flex lg:flex-col">
         <BrandMark className="[&_span:last-child_span:last-child]:text-sidebar-foreground/60" />
         <div className="my-auto max-w-xl">

@@ -51,7 +51,6 @@ function LiveAuthForm({ mode }: { mode: "login" | "register" }) {
       await signIn("password", data);
       if (mode === "register") {
         await initializeProfile({
-          role: "buyer",
           displayName: String(data.get("name") ?? "").trim(),
         });
       }

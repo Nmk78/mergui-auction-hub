@@ -4,7 +4,7 @@ Last updated: 2026-07-18
 
 ## Current status
 
-Phases 1 through 7 are complete. Phase 8 is next.
+All eight MVP development phases are complete.
 
 ## Completed milestones
 
@@ -144,10 +144,33 @@ Phases 1 through 7 are complete. Phase 8 is next.
   intentionally unconfigured Convex environment.
 - Verified: `npm run lint`, `npm run typecheck`, and `npm run build`.
 
+### Phase 8 — Production hardening and verification
+
+- Added global loading, error-recovery, and not-found route experiences.
+- Added the public AI visual assessment methodology and limitations page.
+- Wired public header search, upcoming-auction navigation, mobile navigation,
+  and purposeful workspace header actions; removed inert controls.
+- Added real workspace identity rendering for configured accounts and explicit
+  showcase identity in local showcase mode.
+- Added an internal seller-provisioning operation without exposing public seller
+  registration or an admin surface.
+- Fixed buyer self-raise availability so an existing auction hold can be reused,
+  and added an optimistic Convex bid and wallet update for responsive feedback.
+- Extracted deterministic auction and wallet rules into a reusable domain module.
+- Added seven automated tests covering opening bids, increments, deterministic
+  tie resolution, reusable reservations, safe settlement, and integer money.
+- Added associated form labels, a skip link, mobile public navigation, responsive
+  tables/cards, and no-overflow behavior at tested breakpoints.
+- Browser-verified public search and upcoming filters, auction reports, guest
+  restrictions, buyer registration and bidding, buyer wallet/bids/purchases,
+  seller analytics/batches/publication/sales, guidance, and recovery pages.
+- Browser verification found no framework overlays or console errors.
+- Verified: `npm run lint`, `npm run typecheck`, `npm test`, and
+  `npm run build`.
+
 ## Pending phases
 
-- Phase 8 — Empty/error/loading states, accessibility, responsive QA, and full
-  end-to-end verification.
+None for the v1 MVP specification.
 
 ## Assumptions
 

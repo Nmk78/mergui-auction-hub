@@ -10,7 +10,10 @@ export const metadata: Metadata = {
 
 export default function RegisterPage() {
   return (
-    <main className="flex min-h-screen items-center justify-center px-4 py-12 sm:px-8">
+    <main
+      id="main-content"
+      className="flex min-h-screen items-center justify-center px-4 py-12 sm:px-8"
+    >
       <div className="w-full max-w-md">
         <BrandMark className="mb-8" />
         <Card className="shadow-sm">

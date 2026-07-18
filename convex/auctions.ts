@@ -4,6 +4,13 @@ import { ConvexError, v } from "convex/values";
 import type { DataModel, MutationCtx, QueryCtx } from "./lib/server";
 import { internalMutation, mutation, query } from "./lib/server";
 import { requireProfile, writeActivity } from "./lib/auth";
+import {
+  availableForAuction,
+  isPositiveWholeMoney,
+  minimumValidBid,
+  selectWinningBid,
+  settleWinningWallet,
+} from "./lib/auctionRules";
 
 const closeAuctionRef =
   makeFunctionReference<"mutation">("auctions:closeAuction");
@@ -131,10 +138,7 @@ export const placeBid = mutation({
       throw new ConvexError("Sellers cannot bid on their own batches.");
     }
     assertMoney(amount, "Bid");
-    const minimum =
-      auction.bidCount === 0
-        ? auction.startingPrice
-        : auction.currentPrice + auction.minimumIncrement;
+    const minimum = minimumValidBid(auction);
     if (amount < minimum) {
       throw new ConvexError(`The next bid must be at least ${minimum} MMK.`);
     }
@@ -148,8 +152,11 @@ export const placeBid = mutation({
     }
     const ownExistingHold =
       auction.currentBidderId === userId ? auction.currentPrice : 0;
-    const availableForThisAuction =
-      bidderWallet.balance - bidderWallet.reserved + ownExistingHold;
+    const availableForThisAuction = availableForAuction(
+      bidderWallet.balance,
+      bidderWallet.reserved,
+      ownExistingHold,
+    );
     if (availableForThisAuction < amount) {
       throw new ConvexError(
         `Available wallet balance is ${availableForThisAuction} MMK.`,
@@ -413,10 +420,7 @@ async function closeAuctionRecord(
     .query("bids")
     .withIndex("by_auction", (query) => query.eq("auctionId", auction._id))
     .collect();
-  const winner = [...bids].sort(
-    (left, right) =>
-      right.amount - left.amount || left.placedAt - right.placedAt,
-  )[0];
+  const winner = selectWinningBid(bids);
   const now = Date.now();
 
   if (winner) {
@@ -424,20 +428,17 @@ async function closeAuctionRecord(
       .query("wallets")
       .withIndex("by_user", (query) => query.eq("userId", winner.bidderId))
       .unique();
-    if (
-      !wallet ||
-      wallet.balance < winner.amount ||
-      wallet.reserved < winner.amount
-    ) {
+    const settlement = wallet
+      ? settleWinningWallet(wallet.balance, wallet.reserved, winner.amount)
+      : null;
+    if (!wallet || !settlement) {
       throw new ConvexError(
         "Winning wallet invariant failed; settlement was not applied.",
       );
     }
-    const balanceAfter = wallet.balance - winner.amount;
-    const reservedAfter = wallet.reserved - winner.amount;
     await ctx.db.patch(wallet._id, {
-      balance: balanceAfter,
-      reserved: reservedAfter,
+      balance: settlement.balanceAfter,
+      reserved: settlement.reservedAfter,
       updatedAt: now,
     });
     await ctx.db.insert("transactions", {
@@ -446,8 +447,8 @@ async function closeAuctionRecord(
       auctionId: auction._id,
       type: "purchase",
       amount: -winner.amount,
-      balanceAfter,
-      reservedAfter,
+      balanceAfter: settlement.balanceAfter,
+      reservedAfter: settlement.reservedAfter,
       note: "Winning auction settlement",
       createdAt: now,
     });
@@ -551,7 +552,7 @@ async function hydrateAuction(
 }
 
 function assertMoney(value: number, field: string) {
-  if (!Number.isSafeInteger(value) || value <= 0) {
+  if (!isPositiveWholeMoney(value)) {
     throw new ConvexError(`${field} must be a positive whole MMK amount.`);
   }
 }
