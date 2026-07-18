@@ -1,4 +1,6 @@
 import { ConvexError, v } from "convex/values";
+import type { Id } from "./_generated/dataModel";
+import type { MutationCtx } from "./lib/server";
 import { internalMutation, mutation, query } from "./lib/server";
 import { requireUserId, writeActivity } from "./lib/auth";
 
@@ -76,6 +78,47 @@ export const initialize = mutation({
   },
 });
 
+export const ensureBuyer = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await requireUserId(ctx);
+    const [user, existing] = await Promise.all([
+      ctx.db.get(userId),
+      ctx.db
+        .query("profiles")
+        .withIndex("by_user", (query) => query.eq("userId", userId))
+        .unique(),
+    ]);
+
+    if (existing) {
+      if (existing.role === "buyer") {
+        await ensureBuyerWallet(ctx, userId);
+      }
+      return { profileId: existing._id, role: existing.role };
+    }
+
+    const fallbackName = user?.name ?? user?.email?.split("@")[0] ?? "Buyer";
+    const displayName = normalizeDisplayName(fallbackName);
+    const now = Date.now();
+    const profileId = await ctx.db.insert("profiles", {
+      userId,
+      role: "buyer",
+      displayName,
+      createdAt: now,
+      updatedAt: now,
+    });
+    const walletId = await ensureBuyerWallet(ctx, userId);
+    await writeActivity(ctx, {
+      userId,
+      action: "profile.created",
+      entityType: "profile",
+      entityId: profileId,
+      metadata: { role: "buyer", walletId, source: "oauth" },
+    });
+    return { profileId, role: "buyer" as const };
+  },
+});
+
 export const provisionSeller = internalMutation({
   args: {
     userId: v.id("users"),
@@ -132,3 +175,33 @@ export const provisionSeller = internalMutation({
     return profileId;
   },
 });
+
+async function ensureBuyerWallet(
+  ctx: MutationCtx,
+  userId: Id<"users">,
+) {
+  const wallet = await ctx.db
+    .query("wallets")
+    .withIndex("by_user", (query) => query.eq("userId", userId))
+    .unique();
+  if (wallet) {
+    return wallet._id;
+  }
+  return ctx.db.insert("wallets", {
+    userId,
+    balance: 0,
+    reserved: 0,
+    updatedAt: Date.now(),
+  });
+}
+
+function normalizeDisplayName(value: string) {
+  const name = value.trim();
+  if (name.length >= 2 && name.length <= 80) {
+    return name;
+  }
+  if (name.length > 80) {
+    return name.slice(0, 80);
+  }
+  return "Buyer";
+}

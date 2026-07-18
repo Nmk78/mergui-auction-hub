@@ -47,11 +47,41 @@ Convex deployment environment:
 
 - `JWT_PRIVATE_KEY`
 - `JWKS`
+- `AUTH_GOOGLE_ID`
+- `AUTH_GOOGLE_SECRET`
 - `OPENROUTER_API_KEY`
 - `OPENROUTER_VISION_MODEL`
 - `OPENROUTER_ASSISTANT_MODEL`
+- `AUTO_BIDDING_ENABLED` (`true` to enable demo auto-bidding, otherwise unset
+  or `false`)
 
 Never expose model or authentication secrets with a `NEXT_PUBLIC_` prefix.
+
+For Google sign-in, configure the OAuth app's authorized redirect URI as:
+
+```text
+https://<your-convex-site-url>/api/auth/callback/google
+```
+
+## Demo auto-bidding
+
+The Convex backend includes an opt-in trading-bot cron for live demos. It uses
+a 10-second pulse with random skips and delayed bid bursts, creates clearly
+named demo buyer bot profiles if needed, keeps their virtual wallets funded,
+and places randomized valid bids on live auctions through the same wallet
+reservation path used by real buyers.
+
+Enable it on the active Convex deployment:
+
+```bash
+npx convex env set AUTO_BIDDING_ENABLED true
+```
+
+Disable it after the demo:
+
+```bash
+npx convex env set AUTO_BIDDING_ENABLED false
+```
 
 ## Quality checks
 

@@ -10,6 +10,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 import {
   Select,
   SelectContent,
@@ -36,6 +37,7 @@ function LiveAuthForm({ mode }: { mode: "login" | "register" }) {
   const { signIn } = useAuthActions();
   const initializeProfile = useMutation(convexApi.profiles.initialize);
   const [pending, setPending] = useState(false);
+  const [oauthPending, setOauthPending] = useState(false);
   const [role, setRole] = useState<UserRole>(mode === "register" ? "buyer" : "seller");
   const [error, setError] = useState<string | null>(null);
 
@@ -68,77 +70,116 @@ function LiveAuthForm({ mode }: { mode: "login" | "register" }) {
     }
   }
 
+  async function onGoogleSignIn() {
+    setOauthPending(true);
+    setError(null);
+    try {
+      await signIn("google", {
+        redirectTo: `/auth/complete?role=${mode === "register" ? "buyer" : role}`,
+      });
+    } catch (cause) {
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : "Google sign-in failed. Try again in a moment.",
+      );
+      setOauthPending(false);
+    }
+  }
+
   return (
-    <form className="space-y-5" onSubmit={onSubmit}>
-      {mode === "register" && (
-        <div className="space-y-2">
-          <Label htmlFor="name">Full name</Label>
-          <Input
-            id="name"
-            name="name"
-            autoComplete="name"
-            placeholder="Your full name"
-            required
-            minLength={2}
-          />
-        </div>
-      )}
-      <div className="space-y-2">
-        <Label htmlFor="email">Email address</Label>
-        <Input
-          id="email"
-          name="email"
-          type="email"
-          autoComplete="email"
-          placeholder="name@company.com"
-          required
-        />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="password">Password</Label>
-        <Input
-          id="password"
-          name="password"
-          type="password"
-          autoComplete={mode === "login" ? "current-password" : "new-password"}
-          placeholder="Minimum 8 characters"
-          minLength={8}
-          required
-        />
-      </div>
-      {mode === "login" && (
-        <div className="space-y-2">
-          <Label htmlFor="workspace">Open workspace</Label>
-          <Select value={role} onValueChange={(value) => setRole(value as UserRole)}>
-            <SelectTrigger id="workspace">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="seller">Seller workspace</SelectItem>
-              <SelectItem value="buyer">Buyer marketplace</SelectItem>
-            </SelectContent>
-          </Select>
-          <p className="text-xs text-muted-foreground">
-            Access is verified against your assigned account role.
-          </p>
-        </div>
-      )}
-      {error && (
-        <Alert variant="destructive">
-          <LockKeyhole className="size-4" />
-          <AlertTitle>Could not continue</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-      <Button className="w-full" size="lg" disabled={pending}>
-        {pending ? (
+    <div className="space-y-5">
+      <Button
+        type="button"
+        variant="outline"
+        className="w-full"
+        size="lg"
+        onClick={onGoogleSignIn}
+        disabled={pending || oauthPending}
+      >
+        {oauthPending ? (
           <Loader2 className="size-4 animate-spin" />
         ) : (
-          <ArrowRight className="size-4" />
+          <LockKeyhole className="size-4" />
         )}
-        {mode === "register" ? "Create buyer account" : "Sign in securely"}
+        Continue with Google
       </Button>
-    </form>
+      <div className="flex items-center gap-3">
+        <Separator className="flex-1" />
+        <span className="text-xs text-muted-foreground">or</span>
+        <Separator className="flex-1" />
+      </div>
+      <form className="space-y-5" onSubmit={onSubmit}>
+        {mode === "register" && (
+          <div className="space-y-2">
+            <Label htmlFor="name">Full name</Label>
+            <Input
+              id="name"
+              name="name"
+              autoComplete="name"
+              placeholder="Your full name"
+              required
+              minLength={2}
+            />
+          </div>
+        )}
+        <div className="space-y-2">
+          <Label htmlFor="email">Email address</Label>
+          <Input
+            id="email"
+            name="email"
+            type="email"
+            autoComplete="email"
+            placeholder="name@company.com"
+            required
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="password">Password</Label>
+          <Input
+            id="password"
+            name="password"
+            type="password"
+            autoComplete={mode === "login" ? "current-password" : "new-password"}
+            placeholder="Minimum 8 characters"
+            minLength={8}
+            required
+          />
+        </div>
+        {mode === "login" && (
+          <div className="space-y-2">
+            <Label htmlFor="workspace">Open workspace</Label>
+            <Select value={role} onValueChange={(value) => setRole(value as UserRole)}>
+              <SelectTrigger id="workspace">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="seller">Seller workspace</SelectItem>
+                <SelectItem value="buyer">Buyer marketplace</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Access is verified against your assigned account role.
+            </p>
+          </div>
+        )}
+        {error && (
+          <Alert variant="destructive">
+            <LockKeyhole className="size-4" />
+            <AlertTitle>Could not continue</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+        <Button className="w-full" size="lg" disabled={pending}>
+          {pending ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : (
+            <ArrowRight className="size-4" />
+          )}
+          {mode === "register" ? "Create buyer account" : "Sign in securely"}
+        </Button>
+      </form>
+    </div>
   );
 }
 

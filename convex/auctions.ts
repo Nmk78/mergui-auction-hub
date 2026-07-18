@@ -1,16 +1,11 @@
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { makeFunctionReference } from "convex/server";
 import { ConvexError, v } from "convex/values";
-import type { DataModel, MutationCtx, QueryCtx } from "./lib/server";
+import type { DataModel, QueryCtx } from "./lib/server";
 import { internalMutation, mutation, query } from "./lib/server";
 import { requireProfile, writeActivity } from "./lib/auth";
-import {
-  availableForAuction,
-  isPositiveWholeMoney,
-  minimumValidBid,
-  selectWinningBid,
-  settleWinningWallet,
-} from "./lib/auctionRules";
+import { isPositiveWholeMoney } from "./lib/auctionRules";
+import { closeAuctionRecord, placeBidForBuyer } from "./lib/bidding";
 
 const closeAuctionRef =
   makeFunctionReference<"mutation">("auctions:closeAuction");
@@ -112,124 +107,7 @@ export const placeBid = mutation({
   },
   handler: async (ctx, { auctionId, amount }) => {
     const { userId } = await requireProfile(ctx, "buyer");
-    const auction = await ctx.db.get(auctionId);
-    if (!auction) {
-      throw new ConvexError("Auction not found.");
-    }
-    const now = Date.now();
-    if (now >= auction.endsAt) {
-      await closeAuctionRecord(ctx, auction);
-      throw new ConvexError("This auction has ended.");
-    }
-    if (now < auction.startsAt) {
-      throw new ConvexError("This auction has not started.");
-    }
-    const effectiveStatus =
-      auction.status === "scheduled" && now >= auction.startsAt
-        ? "live"
-        : auction.status;
-    if (effectiveStatus === "live" && auction.status === "scheduled") {
-      await ctx.db.patch(auctionId, { status: "live" });
-    }
-    if (effectiveStatus !== "live") {
-      throw new ConvexError("This auction is not accepting bids.");
-    }
-    if (auction.sellerId === userId) {
-      throw new ConvexError("Sellers cannot bid on their own batches.");
-    }
-    assertMoney(amount, "Bid");
-    const minimum = minimumValidBid(auction);
-    if (amount < minimum) {
-      throw new ConvexError(`The next bid must be at least ${minimum} MMK.`);
-    }
-
-    const bidderWallet = await ctx.db
-      .query("wallets")
-      .withIndex("by_user", (query) => query.eq("userId", userId))
-      .unique();
-    if (!bidderWallet) {
-      throw new ConvexError("Buyer wallet not found.");
-    }
-    const ownExistingHold =
-      auction.currentBidderId === userId ? auction.currentPrice : 0;
-    const availableForThisAuction = availableForAuction(
-      bidderWallet.balance,
-      bidderWallet.reserved,
-      ownExistingHold,
-    );
-    if (availableForThisAuction < amount) {
-      throw new ConvexError(
-        `Available wallet balance is ${availableForThisAuction} MMK.`,
-      );
-    }
-
-    const bidId = await ctx.db.insert("bids", {
-      auctionId,
-      bidderId: userId,
-      amount,
-      placedAt: now,
-    });
-
-    if (auction.currentBidderId) {
-      const previousWallet = await ctx.db
-        .query("wallets")
-        .withIndex("by_user", (query) =>
-          query.eq("userId", auction.currentBidderId!),
-        )
-        .unique();
-      if (!previousWallet || previousWallet.reserved < auction.currentPrice) {
-        throw new ConvexError("Previous bid reservation is inconsistent.");
-      }
-      const previousReserved = previousWallet.reserved - auction.currentPrice;
-      await ctx.db.patch(previousWallet._id, {
-        reserved: previousReserved,
-        updatedAt: now,
-      });
-      await recordWalletTransaction(ctx, {
-        wallet: previousWallet,
-        auctionId,
-        type: "release",
-        amount: auction.currentPrice,
-        reservedAfter: previousReserved,
-        note:
-          auction.currentBidderId === userId
-            ? "Previous bid hold replaced by a higher bid"
-            : "Bid hold released after being outbid",
-      });
-    }
-
-    const bidderReservedBase =
-      auction.currentBidderId === userId
-        ? bidderWallet.reserved - auction.currentPrice
-        : bidderWallet.reserved;
-    const bidderReservedAfter = bidderReservedBase + amount;
-    await ctx.db.patch(bidderWallet._id, {
-      reserved: bidderReservedAfter,
-      updatedAt: now,
-    });
-    await recordWalletTransaction(ctx, {
-      wallet: bidderWallet,
-      auctionId,
-      type: "hold",
-      amount: -amount,
-      reservedAfter: bidderReservedAfter,
-      note: "Funds reserved for leading bid",
-    });
-
-    await ctx.db.patch(auctionId, {
-      currentPrice: amount,
-      currentBidId: bidId,
-      currentBidderId: userId,
-      bidCount: auction.bidCount + 1,
-    });
-    await writeActivity(ctx, {
-      userId,
-      action: "bid.placed",
-      entityType: "auction",
-      entityId: auctionId,
-      metadata: { bidId, amount },
-    });
-    return bidId;
+    return placeBidForBuyer(ctx, { auctionId, userId, amount });
   },
 });
 
@@ -408,99 +286,6 @@ export const listPurchases = query({
     return Promise.all(auctions.map((auction) => hydrateAuction(ctx, auction)));
   },
 });
-
-async function closeAuctionRecord(
-  ctx: MutationCtx,
-  auction: DataModel["auctions"]["document"],
-) {
-  if (auction.status === "closed" || auction.status === "cancelled") {
-    return auction.winnerId ?? null;
-  }
-  const bids = await ctx.db
-    .query("bids")
-    .withIndex("by_auction", (query) => query.eq("auctionId", auction._id))
-    .collect();
-  const winner = selectWinningBid(bids);
-  const now = Date.now();
-
-  if (winner) {
-    const wallet = await ctx.db
-      .query("wallets")
-      .withIndex("by_user", (query) => query.eq("userId", winner.bidderId))
-      .unique();
-    const settlement = wallet
-      ? settleWinningWallet(wallet.balance, wallet.reserved, winner.amount)
-      : null;
-    if (!wallet || !settlement) {
-      throw new ConvexError(
-        "Winning wallet invariant failed; settlement was not applied.",
-      );
-    }
-    await ctx.db.patch(wallet._id, {
-      balance: settlement.balanceAfter,
-      reserved: settlement.reservedAfter,
-      updatedAt: now,
-    });
-    await ctx.db.insert("transactions", {
-      walletId: wallet._id,
-      userId: winner.bidderId,
-      auctionId: auction._id,
-      type: "purchase",
-      amount: -winner.amount,
-      balanceAfter: settlement.balanceAfter,
-      reservedAfter: settlement.reservedAfter,
-      note: "Winning auction settlement",
-      createdAt: now,
-    });
-  }
-
-  await ctx.db.patch(auction._id, {
-    status: "closed",
-    winnerId: winner?.bidderId,
-    winningBidId: winner?._id,
-    currentPrice: winner?.amount ?? auction.startingPrice,
-    closedAt: now,
-  });
-  await ctx.db.patch(auction.batchId, {
-    status: winner ? "sold" : "ready",
-    updatedAt: now,
-  });
-  await writeActivity(ctx, {
-    action: "auction.closed",
-    entityType: "auction",
-    entityId: auction._id,
-    metadata: {
-      winnerId: winner?.bidderId,
-      winningBidId: winner?._id,
-      amount: winner?.amount,
-    },
-  });
-  return winner?.bidderId ?? null;
-}
-
-async function recordWalletTransaction(
-  ctx: MutationCtx,
-  input: {
-    wallet: DataModel["wallets"]["document"];
-    auctionId: DataModel["auctions"]["document"]["_id"];
-    type: "hold" | "release";
-    amount: number;
-    reservedAfter: number;
-    note: string;
-  },
-) {
-  await ctx.db.insert("transactions", {
-    walletId: input.wallet._id,
-    userId: input.wallet.userId,
-    auctionId: input.auctionId,
-    type: input.type,
-    amount: input.amount,
-    balanceAfter: input.wallet.balance,
-    reservedAfter: input.reservedAfter,
-    note: input.note,
-    createdAt: Date.now(),
-  });
-}
 
 async function hydrateAuction(
   ctx: QueryCtx,
