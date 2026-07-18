@@ -4,7 +4,7 @@ Last updated: 2026-07-18
 
 ## Current status
 
-Phases 1 through 6 are complete. Phase 7 is next.
+Phases 1 through 7 are complete. Phase 8 is next.
 
 ## Completed milestones
 
@@ -128,9 +128,24 @@ Phases 1 through 6 are complete. Phase 7 is next.
   Convex is intentionally unconfigured.
 - Verified: `npm run lint`, `npm run typecheck`, and `npm run build`.
 
+### Phase 7 — Seller analytics and records
+
+- Added a role-protected seller analytics query derived from owned batches,
+  assessments, auctions, bids, winning buyers, and settled prices.
+- Replaced placeholder dashboard values with active inventory, ready batches,
+  live auctions, bid volume, rolling 30-day sales, completed lots, and average
+  AI visual quality.
+- Added a responsive batch-pipeline view and recent-sales summary.
+- Added searchable, status-filterable batch history across draft, assessment,
+  ready, auction, and sold states.
+- Added a complete seller sales-history route with buyer, close date, weight,
+  bid count, visual quality, and winning-price records.
+- Added loading and empty states plus representative showcase analytics for an
+  intentionally unconfigured Convex environment.
+- Verified: `npm run lint`, `npm run typecheck`, and `npm run build`.
+
 ## Pending phases
 
-- Phase 7 — Seller analytics, batch history, and sales history.
 - Phase 8 — Empty/error/loading states, accessibility, responsive QA, and full
   end-to-end verification.
 
