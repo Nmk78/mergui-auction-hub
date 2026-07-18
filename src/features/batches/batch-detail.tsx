@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { useBackend } from "@/components/providers/backend-provider";
 import { BatchStatusBadge } from "@/components/domain/status-badge";
 import { SeafoodThumbnail } from "@/components/domain/seafood-thumbnail";
+import { AssessmentPanel } from "@/features/assessments/assessment-panel";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   AlertDialog,
@@ -138,9 +139,18 @@ function BatchDetailView({
             </Button>
           )}
           {batch.status === "draft" && (
-            <Button disabled={batch.images.length === 0}>
-              <Sparkles className="size-4" />
-              Run AI assessment
+            <Button disabled={batch.images.length === 0} asChild={batch.images.length > 0}>
+              {batch.images.length > 0 ? (
+                <a href="#assessment">
+                  <Sparkles className="size-4" />
+                  Run AI assessment
+                </a>
+              ) : (
+                <>
+                  <Sparkles className="size-4" />
+                  Run AI assessment
+                </>
+              )}
             </Button>
           )}
           {editable && (
@@ -230,6 +240,8 @@ function BatchDetailView({
               </p>
             </CardContent>
           </Card>
+
+          <AssessmentPanel batch={batch} />
         </div>
 
         <Card className="h-fit">

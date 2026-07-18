@@ -4,7 +4,7 @@ Last updated: 2026-07-18
 
 ## Current status
 
-Phases 1 and 2 are complete. Phase 3 is next.
+Phases 1 through 3 are complete. Phase 4 is next.
 
 ## Completed milestones
 
@@ -47,10 +47,32 @@ Phases 1 and 2 are complete. Phase 3 is next.
   Convex data path.
 - Verified: `npm run lint`, `npm run typecheck`, and `npm run build`.
 
+### Phase 3 — AI integration
+
+- Added a replaceable OpenRouter service adapter with deployment-only API keys,
+  timeouts, normalized errors, and no browser secret exposure.
+- Added configurable hosted vision and assistant model names.
+- Added multi-image visual assessment through OpenRouter's multimodal chat API.
+- Required a strict structured-output JSON schema and a second Zod validation
+  pass before any model result is stored.
+- Added quality score, decision-support grade, confidence, freshness,
+  appearance, color, visible damage, size consistency, issue list, summary,
+  trading recommendation, starting bid, market estimate, export estimate, and
+  price explanation.
+- Added pending/completed/failed assessment state transitions with safe batch
+  rollback on service failure.
+- Added the professional seller assessment report, metric progress, price cards,
+  visible issue states, processing state, error recovery, and model metadata.
+- Added the mandatory AI Visual Assessment disclaimer throughout the workflow;
+  no result is represented as scientific or official certification.
+- Added a grounded AI seafood assistant that receives only stored batch and
+  assessment data and explicitly refuses unavailable facts.
+- Added deterministic showcase assistant answers without pretending to call a
+  live model.
+- Verified: `npm run lint`, `npm run typecheck`, and `npm run build`.
+
 ## Pending phases
 
-- Phase 3 — AI visual assessment, price prediction, report explanation, and
-  grounded seafood assistant.
 - Phase 4 — Timed auction publishing, bidding, deterministic close, and winner.
 - Phase 5 — Wallet reservation, settlement, and transaction history.
 - Phase 6 — Guest/buyer marketplace, search, reports, and purchase history.
