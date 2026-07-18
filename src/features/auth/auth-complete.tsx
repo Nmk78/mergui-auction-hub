@@ -35,7 +35,7 @@ export function AuthComplete() {
     void (async () => {
       try {
         const result = (await ensureBuyer({})) as EnsureBuyerResult;
-        const destination = result.role === "seller" ? "/seller" : "/auctions";
+        const destination = result.role === "seller" ? "/seller" : "/buyer";
         router.replace(destination);
         router.refresh();
       } catch (cause) {

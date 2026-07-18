@@ -57,7 +57,7 @@ function LiveAuthForm({ mode }: { mode: "login" | "register" }) {
         });
       }
       toast.success(mode === "register" ? "Buyer account created" : "Welcome back");
-      router.push(role === "seller" ? "/seller" : "/auctions");
+      router.push(role === "seller" ? "/seller" : "/buyer");
       router.refresh();
     } catch (cause) {
       setError(
@@ -155,7 +155,7 @@ function LiveAuthForm({ mode }: { mode: "login" | "register" }) {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="seller">Seller workspace</SelectItem>
-                <SelectItem value="buyer">Buyer marketplace</SelectItem>
+                <SelectItem value="buyer">Buyer workspace</SelectItem>
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
@@ -190,7 +190,7 @@ function DemoAuthForm({ mode }: { mode: "login" | "register" }) {
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     sessionStorage.setItem("mergui-demo-role", role);
-    router.push(role === "seller" ? "/seller" : "/auctions");
+    router.push(role === "seller" ? "/seller" : "/buyer");
   }
 
   return (
@@ -237,7 +237,7 @@ function DemoAuthForm({ mode }: { mode: "login" | "register" }) {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="seller">Seller workspace</SelectItem>
-              <SelectItem value="buyer">Buyer marketplace</SelectItem>
+              <SelectItem value="buyer">Buyer workspace</SelectItem>
             </SelectContent>
           </Select>
         </div>

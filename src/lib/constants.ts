@@ -35,6 +35,7 @@ export const sellerNavigation = [
 ] as const;
 
 export const buyerNavigation = [
+  { label: "Overview", href: "/buyer", icon: LayoutDashboard },
   { label: "Marketplace", href: "/auctions", icon: ShoppingBag },
   { label: "My bids", href: "/buyer/bids", icon: Gavel },
   { label: "Purchases", href: "/buyer/purchases", icon: ReceiptText },

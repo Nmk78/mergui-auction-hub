@@ -74,7 +74,7 @@ function LiveAppShell({
     if (!actualRole || actualRole === variant) {
       return;
     }
-    router.replace(actualRole === "seller" ? "/seller" : "/auctions");
+    router.replace(actualRole === "seller" ? "/seller" : "/buyer");
   }, [actualRole, router, variant]);
 
   const guardedChildren =
