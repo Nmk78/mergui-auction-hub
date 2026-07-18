@@ -26,6 +26,7 @@ export const convexApi = {
     listPublic: makeFunctionReference<"query">("auctions:listPublic"),
     getPublic: makeFunctionReference<"query">("auctions:getPublic"),
     listMine: makeFunctionReference<"query">("auctions:listMine"),
+    listMyBids: makeFunctionReference<"query">("auctions:listMyBids"),
     listPurchases: makeFunctionReference<"query">("auctions:listPurchases"),
     placeBid: makeFunctionReference<"mutation">("auctions:placeBid"),
   },

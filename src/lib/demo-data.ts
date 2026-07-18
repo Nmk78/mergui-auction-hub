@@ -115,6 +115,54 @@ export const demoAssessments: Assessment[] = [
     model: "Configured hosted vision model",
     completedAt: now - 3 * 60 * 60 * 1000,
   },
+  {
+    id: "assessment-3",
+    batchId: "demo-batch-3",
+    qualityScore: 8.1,
+    grade: "Premium Local",
+    confidence: 89,
+    freshness: 8.4,
+    appearance: 8.2,
+    color: 8.3,
+    damage: 7.8,
+    sizeConsistency: 7.9,
+    detectedIssues: ["Minor scale loss", "Moderate size variation"],
+    summary:
+      "The submitted images show clear eyes and consistent skin color, with minor scale loss visible on a small portion of the lot.",
+    recommendation:
+      "Appropriate for premium domestic buyer review after routine physical inspection.",
+    suggestedStartingBid: 610_000,
+    suggestedMarketPrice: 700_000,
+    estimatedExportValue: 745_000,
+    priceExplanation:
+      "Visible freshness supports the estimate, while size variation and minor scale loss temper the upper range.",
+    model: "Configured hosted vision model",
+    completedAt: now - 2 * 60 * 60 * 1000,
+  },
+  {
+    id: "assessment-4",
+    batchId: "demo-batch-4",
+    qualityScore: 7.8,
+    grade: "Premium Local",
+    confidence: 88,
+    freshness: 8,
+    appearance: 7.9,
+    color: 8.1,
+    damage: 7.5,
+    sizeConsistency: 7.7,
+    detectedIssues: ["Light surface marks", "Some mantle-size variation"],
+    summary:
+      "The lot shows a generally bright surface and good visual condition, with light marks and some variation in mantle size.",
+    recommendation:
+      "Suitable for local wholesale review, subject to a normal hands-on condition check.",
+    suggestedStartingBid: 360_000,
+    suggestedMarketPrice: 430_000,
+    estimatedExportValue: 455_000,
+    priceExplanation:
+      "The estimate balances good apparent freshness against surface marks and visible size variation.",
+    model: "Configured hosted vision model",
+    completedAt: now - day * 3,
+  },
 ];
 
 export const demoAuctions: PublicAuction[] = [
@@ -145,5 +193,42 @@ export const demoAuctions: PublicAuction[] = [
     startsAt: now - 5 * 60 * 60 * 1000,
     endsAt: now + 50 * 60 * 1000,
     status: "live",
+  },
+];
+
+export const demoScheduledAuctions: PublicAuction[] = [
+  {
+    id: "auction-3",
+    batchId: "demo-batch-3",
+    batch: demoBatches[2],
+    assessment: demoAssessments[2],
+    sellerName: "Mergui Coastal Fisheries",
+    startingPrice: 610_000,
+    minimumIncrement: 20_000,
+    currentPrice: 610_000,
+    bidCount: 0,
+    startsAt: now + 18 * 60 * 60 * 1000,
+    endsAt: now + 26 * 60 * 60 * 1000,
+    status: "scheduled",
+  },
+];
+
+export const demoPurchasedAuctions: PublicAuction[] = [
+  {
+    id: "auction-4",
+    batchId: "demo-batch-4",
+    batch: demoBatches[3],
+    assessment: demoAssessments[3],
+    sellerName: "Dawei Andaman Supply",
+    startingPrice: 360_000,
+    minimumIncrement: 10_000,
+    currentPrice: 420_000,
+    bidCount: 7,
+    startsAt: now - day * 2.5,
+    endsAt: now - day * 2,
+    status: "closed",
+    winnerName: "Demo Buyer",
+    myHighestBid: 420_000,
+    lastBidAt: now - day * 2 - 5 * 60 * 1000,
   },
 ];

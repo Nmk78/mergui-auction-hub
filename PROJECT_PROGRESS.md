@@ -4,7 +4,7 @@ Last updated: 2026-07-18
 
 ## Current status
 
-Phases 1 through 5 are complete. Phase 6 is next.
+Phases 1 through 6 are complete. Phase 7 is next.
 
 ## Completed milestones
 
@@ -111,9 +111,25 @@ Phases 1 through 5 are complete. Phase 6 is next.
   payment interface.
 - Verified: `npm run lint`, `npm run typecheck`, and `npm run build`.
 
+### Phase 6 — Guest and buyer experience
+
+- Added live and upcoming marketplace views with functional seafood-type,
+  seller, port, and batch-name search.
+- Added result counts, no-match guidance, and responsive filters for guest
+  browsing.
+- Preserved public access to batch facts, seller identity, auction pricing,
+  submitted imagery, and complete AI visual assessment reports.
+- Added a role-protected buyer bid-history query that consolidates each buyer's
+  highest bid per auction and reports leading, outbid, won, or closed state.
+- Added the responsive My Bids workspace with direct auction navigation.
+- Added the role-protected buyer purchase-history query and responsive purchase
+  records with winning price, lot facts, close date, and report navigation.
+- Added representative upcoming, bid-history, and purchase showcase states when
+  Convex is intentionally unconfigured.
+- Verified: `npm run lint`, `npm run typecheck`, and `npm run build`.
+
 ## Pending phases
 
-- Phase 6 — Guest/buyer marketplace, search, reports, and purchase history.
 - Phase 7 — Seller analytics, batch history, and sales history.
 - Phase 8 — Empty/error/loading states, accessibility, responsive QA, and full
   end-to-end verification.

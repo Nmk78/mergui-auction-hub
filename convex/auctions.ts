@@ -334,6 +334,61 @@ export const listMine = query({
   },
 });
 
+export const listMyBids = query({
+  args: {},
+  handler: async (ctx) => {
+    const { userId } = await requireProfile(ctx, "buyer");
+    const bids = await ctx.db
+      .query("bids")
+      .withIndex("by_bidder", (query) => query.eq("bidderId", userId))
+      .order("desc")
+      .collect();
+
+    const byAuction = new Map<
+      string,
+      {
+        bid: (typeof bids)[number];
+        myHighestBid: number;
+        lastBidAt: number;
+      }
+    >();
+    for (const bid of bids) {
+      const key = bid.auctionId.toString();
+      const existing = byAuction.get(key);
+      if (!existing) {
+        byAuction.set(key, {
+          bid,
+          myHighestBid: bid.amount,
+          lastBidAt: bid.placedAt,
+        });
+        continue;
+      }
+      existing.myHighestBid = Math.max(existing.myHighestBid, bid.amount);
+    }
+
+    const results = await Promise.all(
+      [...byAuction.values()].map(async (summary) => {
+        const auction = await ctx.db.get(summary.bid.auctionId);
+        if (!auction) {
+          return null;
+        }
+        const hydrated = await hydrateAuction(ctx, auction);
+        if (!hydrated) {
+          return null;
+        }
+        return {
+          ...hydrated,
+          myHighestBid: summary.myHighestBid,
+          lastBidAt: summary.lastBidAt,
+          isLeading:
+            auction.status === "live" && auction.currentBidderId === userId,
+        };
+      }),
+    );
+    return results.filter((result) => result !== null);
+  },
+});
+
 export const listPurchases = query({
   args: {},
   handler: async (ctx) => {

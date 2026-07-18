@@ -3,7 +3,7 @@ import { PublicHeader } from "@/components/layout/public-header";
 import { AuctionMarketplace } from "@/features/auctions/auction-marketplace";
 
 export const metadata: Metadata = {
-  title: "Live seafood auctions",
+  title: "Seafood auctions",
 };
 
 export default function AuctionsPage() {
@@ -16,7 +16,7 @@ export default function AuctionsPage() {
             Myeik seafood marketplace
           </p>
           <h1 className="mt-3 text-3xl font-semibold tracking-tight">
-            Live assessed seafood auctions
+            Assessed seafood auctions
           </h1>
           <p className="mt-3 text-base leading-7 text-muted-foreground">
             Review seller batch facts, submitted images, and AI visual assessments
