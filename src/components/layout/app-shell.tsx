@@ -2,8 +2,9 @@
 
 import { useQuery } from "convex/react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Menu, Plus, ShoppingBag } from "lucide-react";
+import { useEffect } from "react";
 import { BrandMark } from "@/components/brand/brand-mark";
 import { useBackend } from "@/components/providers/backend-provider";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -22,20 +23,103 @@ import { convexApi } from "@/lib/convex-api";
 import { cn } from "@/lib/utils";
 import { buyerNavigation, sellerNavigation } from "@/lib/constants";
 
+type WorkspaceVariant = "seller" | "buyer";
+type CurrentProfileResult = {
+  user: { name?: string; email?: string } | null;
+  profile: {
+    role: WorkspaceVariant;
+    displayName: string;
+    businessName?: string;
+  } | null;
+};
+
 export function AppShell({
   children,
   variant,
 }: {
   children: React.ReactNode;
-  variant: "seller" | "buyer";
+  variant: WorkspaceVariant;
+}) {
+  const { configured } = useBackend();
+
+  if (configured) {
+    return <LiveAppShell variant={variant}>{children}</LiveAppShell>;
+  }
+
+  return (
+    <ShellFrame
+      variant={variant}
+      identity={<Identity name="Showcase User" roleLabel={roleLabel(variant)} />}
+    >
+      {children}
+    </ShellFrame>
+  );
+}
+
+function LiveAppShell({
+  children,
+  variant,
+}: {
+  children: React.ReactNode;
+  variant: WorkspaceVariant;
+}) {
+  const router = useRouter();
+  const result = useQuery(convexApi.profiles.current, {}) as
+    | CurrentProfileResult
+    | undefined;
+  const actualRole = result?.profile?.role;
+  const roleMismatch = Boolean(actualRole && actualRole !== variant);
+
+  useEffect(() => {
+    if (!actualRole || actualRole === variant) {
+      return;
+    }
+    router.replace(actualRole === "seller" ? "/seller" : "/auctions");
+  }, [actualRole, router, variant]);
+
+  const guardedChildren =
+    result === undefined ? (
+      <WorkspaceLoading />
+    ) : roleMismatch ? (
+      <WorkspaceRedirecting actualRole={actualRole} />
+    ) : !result.profile ? (
+      <WorkspaceProfileMissing variant={variant} />
+    ) : (
+      children
+    );
+
+  return (
+    <ShellFrame
+      variant={variant}
+      identity={
+        result === undefined ? (
+          <Skeleton className="size-9 rounded-full" />
+        ) : (
+          <WorkspaceIdentity result={result} roleLabel={roleLabel(variant)} />
+        )
+      }
+    >
+      {guardedChildren}
+    </ShellFrame>
+  );
+}
+
+function ShellFrame({
+  children,
+  variant,
+  identity,
+}: {
+  children: React.ReactNode;
+  variant: WorkspaceVariant;
+  identity: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const roleLabel = variant === "seller" ? "Seller" : "Buyer";
+  const label = roleLabel(variant);
   const navigation =
     variant === "seller" ? sellerNavigation : buyerNavigation;
 
   const nav = (
-    <nav className="space-y-1" aria-label={`${roleLabel} navigation`}>
+    <nav className="space-y-1" aria-label={`${label} navigation`}>
       {navigation.map((item) => {
         const active =
           pathname === item.href ||
@@ -71,7 +155,7 @@ export function AppShell({
             Workspace
           </p>
           <p className="mt-1 text-sm font-medium">MERGUI Auction Hub</p>
-          <p className="text-xs text-sidebar-foreground/55">{roleLabel}</p>
+          <p className="text-xs text-sidebar-foreground/55">{label}</p>
         </div>
       </aside>
 
@@ -94,7 +178,7 @@ export function AppShell({
                   <BrandMark />
                 </SheetTitle>
                 <SheetDescription className="text-sidebar-foreground/60">
-                  {roleLabel} workspace
+                  {label} workspace
                 </SheetDescription>
               </SheetHeader>
               <div className="px-4 pb-6">{nav}</div>
@@ -114,7 +198,7 @@ export function AppShell({
             </Link>
           </Button>
           <div className="ml-auto flex items-center gap-3">
-            <WorkspaceIdentity roleLabel={roleLabel} />
+            {identity}
           </div>
         </header>
         <main
@@ -128,28 +212,13 @@ export function AppShell({
   );
 }
 
-function WorkspaceIdentity({ roleLabel }: { roleLabel: string }) {
-  const { configured } = useBackend();
-  return configured ? (
-    <LiveWorkspaceIdentity roleLabel={roleLabel} />
-  ) : (
-    <Identity name="Showcase User" roleLabel={roleLabel} />
-  );
-}
-
-function LiveWorkspaceIdentity({ roleLabel }: { roleLabel: string }) {
-  const result = useQuery(convexApi.profiles.current, {}) as
-    | {
-        user: { name?: string; email?: string } | null;
-        profile: {
-          displayName: string;
-          businessName?: string;
-        } | null;
-      }
-    | undefined;
-  if (result === undefined) {
-    return <Skeleton className="size-9 rounded-full" />;
-  }
+function WorkspaceIdentity({
+  result,
+  roleLabel,
+}: {
+  result: CurrentProfileResult;
+  roleLabel: string;
+}) {
   const name =
     result.profile?.businessName ??
     result.profile?.displayName ??
@@ -176,4 +245,48 @@ function Identity({ name, roleLabel }: { name: string; roleLabel: string }) {
       </Avatar>
     </>
   );
+}
+
+function WorkspaceLoading() {
+  return (
+    <div className="grid gap-4">
+      <Skeleton className="h-9 w-52" />
+      <Skeleton className="h-32 w-full" />
+    </div>
+  );
+}
+
+function WorkspaceRedirecting({
+  actualRole,
+}: {
+  actualRole: WorkspaceVariant | undefined;
+}) {
+  return (
+    <div className="rounded-lg border bg-card p-6">
+      <p className="text-sm font-medium">Opening your workspace</p>
+      <p className="mt-2 text-sm text-muted-foreground">
+        This account is registered as {actualRole === "seller" ? "a seller" : "a buyer"}.
+      </p>
+    </div>
+  );
+}
+
+function WorkspaceProfileMissing({ variant }: { variant: WorkspaceVariant }) {
+  return (
+    <div className="rounded-lg border bg-card p-6">
+      <p className="text-sm font-medium">Trading profile required</p>
+      <p className="mt-2 text-sm text-muted-foreground">
+        This signed-in account does not have an initialized {roleLabel(variant).toLowerCase()} profile.
+      </p>
+      {variant === "buyer" && (
+        <Button asChild className="mt-4">
+          <Link href="/auth/complete?role=buyer">Complete buyer profile</Link>
+        </Button>
+      )}
+    </div>
+  );
+}
+
+function roleLabel(variant: WorkspaceVariant) {
+  return variant === "seller" ? "Seller" : "Buyer";
 }

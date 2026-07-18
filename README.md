@@ -38,13 +38,17 @@ the internal `wallets:setSeededBalance` operation.
 
 ## Environment
 
-Browser environment:
+Local app environment:
 
 - `NEXT_PUBLIC_CONVEX_URL`
 - `NEXT_PUBLIC_CONVEX_SITE_URL`
+- `NEXT_PUBLIC_DEBUG_TOOLS_ENABLED` (`true` exposes `/debug` in this app)
+- `SITE_URL` (`http://localhost:3000` for local development; your deployed app
+  origin in production)
 
 Convex deployment environment:
 
+- `SITE_URL`
 - `JWT_PRIVATE_KEY`
 - `JWKS`
 - `AUTH_GOOGLE_ID`
@@ -54,6 +58,7 @@ Convex deployment environment:
 - `OPENROUTER_ASSISTANT_MODEL`
 - `AUTO_BIDDING_ENABLED` (`true` to enable demo auto-bidding, otherwise unset
   or `false`)
+- `DEBUG_TOOLS_ENABLED` (`true` allows `/debug` cleanup mutations)
 
 Never expose model or authentication secrets with a `NEXT_PUBLIC_` prefix.
 

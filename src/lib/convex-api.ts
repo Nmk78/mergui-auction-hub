@@ -38,4 +38,17 @@ export const convexApi = {
   analytics: {
     seller: makeFunctionReference<"query">("analytics:seller"),
   },
+  debug: {
+    status: makeFunctionReference<"query">("debug:status"),
+    clearCurrentSession:
+      makeFunctionReference<"mutation">("debug:clearCurrentSession"),
+    clearAllSessions:
+      makeFunctionReference<"mutation">("debug:clearAllSessions"),
+    resetCurrentUserData:
+      makeFunctionReference<"mutation">("debug:resetCurrentUserData"),
+    deleteCurrentAccount:
+      makeFunctionReference<"mutation">("debug:deleteCurrentAccount"),
+    clearAuthRateLimit:
+      makeFunctionReference<"mutation">("debug:clearAuthRateLimit"),
+  },
 } as const;
