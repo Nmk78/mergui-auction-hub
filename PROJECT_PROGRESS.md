@@ -4,7 +4,7 @@ Last updated: 2026-07-18
 
 ## Current status
 
-Phases 1 through 3 are complete. Phase 4 is next.
+Phases 1 through 4 are complete. Phase 5 is next.
 
 ## Completed milestones
 
@@ -71,9 +71,29 @@ Phases 1 through 3 are complete. Phase 4 is next.
   live model.
 - Verified: `npm run lint`, `npm run typecheck`, and `npm run build`.
 
+### Phase 4 — Timed auctions
+
+- Added seller publication for assessed, ready batches with validated integer MMK
+  starting price, minimum increment, start time, and end time.
+- Added durable Convex schedules for auction opening and automatic closing.
+- Added atomic bid insertion and highest-bid state updates with backend role,
+  ownership, status, deadline, and minimum-increment checks.
+- Added an idempotent internal close operation that sorts by highest amount and
+  earliest server timestamp, records the winner and winning bid, updates the
+  batch to sold, and preserves no-bid results.
+- Added seller auction history queries and buyer purchase query foundation.
+- Added public auction hydration with images, AI report, seller, current price,
+  winner, and bid timeline.
+- Added auction publication form with AI pricing context and automatic-close
+  explanation.
+- Added public live auction cards, functional countdowns, detail view, complete
+  AI visual report, guest restrictions, buyer bid form, leading state, and bid
+  timeline.
+- Added seller auction monitoring route.
+- Verified: `npm run lint`, `npm run typecheck`, and `npm run build`.
+
 ## Pending phases
 
-- Phase 4 — Timed auction publishing, bidding, deterministic close, and winner.
 - Phase 5 — Wallet reservation, settlement, and transaction history.
 - Phase 6 — Guest/buyer marketplace, search, reports, and purchase history.
 - Phase 7 — Seller analytics, batch history, and sales history.

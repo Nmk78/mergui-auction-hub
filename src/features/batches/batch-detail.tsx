@@ -6,6 +6,7 @@ import {
   CalendarDays,
   Check,
   Edit3,
+  Gavel,
   MapPin,
   PackageCheck,
   Sparkles,
@@ -151,6 +152,14 @@ function BatchDetailView({
                   Run AI assessment
                 </>
               )}
+            </Button>
+          )}
+          {batch.status === "ready" && (
+            <Button asChild>
+              <Link href={`/seller/batches/${batch.id}/auction`}>
+                <Gavel className="size-4" />
+                Publish auction
+              </Link>
             </Button>
           )}
           {editable && (

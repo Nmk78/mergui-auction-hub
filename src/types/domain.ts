@@ -67,4 +67,10 @@ export type PublicAuction = {
   status: AuctionStatus;
   winnerName?: string;
   isLeading?: boolean;
+  bids?: Array<{
+    id: string;
+    amount: number;
+    placedAt: number;
+    bidderName: string;
+  }>;
 };
