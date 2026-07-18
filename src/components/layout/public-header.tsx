@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Menu, Search } from "lucide-react";
+import { PublicHeaderAuthActions } from "@/components/layout/public-header-auth-actions";
 import { BrandMark } from "@/components/brand/brand-mark";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -96,12 +97,7 @@ export function PublicHeader() {
             </form>
           </SheetContent>
         </Sheet>
-        <Button variant="ghost" asChild className="md:ml-auto lg:ml-0">
-          <Link href="/login">Sign in</Link>
-        </Button>
-        <Button asChild className="hidden sm:inline-flex">
-          <Link href="/register">Buyer registration</Link>
-        </Button>
+        <PublicHeaderAuthActions />
       </div>
     </header>
   );
